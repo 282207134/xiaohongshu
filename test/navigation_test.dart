@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:life_notes/data/app_store.dart';
 import 'package:life_notes/ui/shell.dart';
-import 'package:life_notes/ui/theme.dart';
+
+import 'support/app.dart';
 
 void main() {
   for (final size in [
@@ -14,19 +13,8 @@ void main() {
     testWidgets('Browse, save, search and navigate at ${size.width}px', (
       tester,
     ) async {
-      tester.view.physicalSize = size;
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      SharedPreferences.setMockInitialValues({});
-      final store = await tester.runAsync(AppStore.load);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: appTheme(),
-          home: AppShell(store: store!),
-        ),
-      );
-      await tester.pumpAndSettle();
+      final store = await loadTestStore(tester, size: size);
+      await pumpTestApp(tester, AppShell(store: store));
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('英国萨福克郡童话般的春日').first);
       await tester.pumpAndSettle();
