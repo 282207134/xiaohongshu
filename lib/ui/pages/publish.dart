@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../data/app_store.dart';
 import '../../data/models.dart';
 import '../theme.dart';
+import '../widgets/keyboard_bar.dart';
 
 class PublishPage extends StatefulWidget {
   const PublishPage({super.key, required this.store});
@@ -20,9 +21,7 @@ class _PublishPageState extends State<PublishPage> {
       body = TextEditingController(),
       tags = TextEditingController();
   final form = GlobalKey<FormState>();
-  final titleFocus = FocusNode(),
-      bodyFocus = FocusNode(),
-      tagsFocus = FocusNode();
+  final titleFocus = FocusNode(), bodyFocus = FocusNode();
   List<String> images = [];
   String category = '生活';
   bool busy = false;
@@ -55,7 +54,6 @@ class _PublishPageState extends State<PublishPage> {
     tags.dispose();
     titleFocus.dispose();
     bodyFocus.dispose();
-    tagsFocus.dispose();
     super.dispose();
   }
 
@@ -96,10 +94,9 @@ class _PublishPageState extends State<PublishPage> {
       'images': images,
       'category': category,
     });
-    if (mounted) {
-      setState(() => busy = false);
-      toast(context, widget.store.storageError ?? '草稿已保存，下次发布可继续编辑');
-    }
+    if (!mounted) return;
+    setState(() => busy = false);
+    toast(context, widget.store.storageError ?? '草稿已保存，下次发布可继续编辑');
   }
 
   Future<void> publish() async {
@@ -132,13 +129,12 @@ class _PublishPageState extends State<PublishPage> {
       images: List.of(images),
     );
     await widget.store.publish(note);
-    if (mounted) {
-      if (widget.store.storageError != null) {
-        setState(() => busy = false);
-        toast(context, widget.store.storageError!);
-      } else {
-        finish(true);
-      }
+    if (!mounted) return;
+    if (widget.store.storageError != null) {
+      setState(() => busy = false);
+      toast(context, widget.store.storageError!);
+    } else {
+      finish(true);
     }
   }
 
@@ -179,7 +175,7 @@ class _PublishPageState extends State<PublishPage> {
     if (choice == 'save') {
       await saveDraft();
       if (mounted && widget.store.storageError == null) finish();
-    } else if (choice == 'discard' && mounted) {
+    } else if (choice == 'discard') {
       finish();
     }
   }
@@ -188,7 +184,7 @@ class _PublishPageState extends State<PublishPage> {
   Widget build(BuildContext context) => PopScope<bool>(
     canPop: canPop,
     onPopInvokedWithResult: (didPop, result) {
-      if (!didPop && !busy) leave();
+      if (!didPop) leave();
     },
     child: Scaffold(
       appBar: AppBar(
@@ -390,7 +386,6 @@ class _PublishPageState extends State<PublishPage> {
                 TextField(
                   key: const ValueKey('publish-tags'),
                   controller: tags,
-                  focusNode: tagsFocus,
                   readOnly: busy,
                   textInputAction: TextInputAction.done,
                   maxLength: 100,
@@ -430,32 +425,26 @@ class _PublishPageState extends State<PublishPage> {
           ),
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 712,
-                  child: FilledButton(
-                    key: const ValueKey('publish-submit'),
-                    onPressed: busy ? null : publish,
-                    child: Text(busy ? '正在保存…' : '发布笔记'),
-                  ),
+      bottomNavigationBar: KeyboardBar(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 10, 24, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 712,
+                child: FilledButton(
+                  key: const ValueKey('publish-submit'),
+                  onPressed: busy ? null : publish,
+                  child: Text(busy ? '正在保存…' : '发布笔记'),
                 ),
-                const SizedBox(height: 6),
-                const Text(
-                  '本地体验：笔记将保存在当前设备中',
-                  style: TextStyle(color: muted, fontSize: 11),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                '本地体验：笔记将保存在当前设备中',
+                style: TextStyle(color: muted, fontSize: 11),
+              ),
+            ],
           ),
         ),
       ),

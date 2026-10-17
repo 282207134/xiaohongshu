@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../../data/app_store.dart';
 import '../../data/models.dart';
 import '../theme.dart';
+import '../widgets/keyboard_bar.dart';
 import '../widgets/note_grid.dart';
 
 class NoteDetail extends StatefulWidget {
@@ -34,14 +35,13 @@ class _NoteDetailState extends State<NoteDetail> {
     if (text.trim().isEmpty || sending) return;
     setState(() => sending = true);
     await widget.store.comment(widget.note, text);
-    if (mounted) {
-      setState(() => sending = false);
-      if (widget.store.storageError == null && comment.text == text) {
-        comment.clear();
-        focus.unfocus();
-      }
-      toast(context, widget.store.storageError ?? '评论已发布');
+    if (!mounted) return;
+    setState(() => sending = false);
+    if (widget.store.storageError == null && comment.text == text) {
+      comment.clear();
+      focus.unfocus();
     }
+    toast(context, widget.store.storageError ?? '评论已发布');
   }
 
   Widget gallery(Note n) => Stack(
@@ -315,85 +315,76 @@ class _NoteDetailState extends State<NoteDetail> {
                   ),
           ),
         ),
-        bottomNavigationBar: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom,
-          ),
-          child: SafeArea(
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFF0F0F2))),
-              ),
-              child: Center(
-                heightFactor: 1,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1030),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          key: const ValueKey('note-comment'),
-                          controller: comment,
-                          focusNode: focus,
-                          maxLength: 500,
-                          minLines: 1,
-                          maxLines: 3,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => send(),
-                          onChanged: (_) => setState(() {}),
-                          decoration: const InputDecoration(
-                            hintText: '说点什么吧…',
-                            counterText: '',
-                            isDense: true,
-                            prefixIcon: Icon(CupertinoIcons.pencil, size: 17),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 11,
-                            ),
+        bottomNavigationBar: KeyboardBar(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Color(0xFFF0F0F2))),
+            ),
+            child: Center(
+              heightFactor: 1,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1030),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const ValueKey('note-comment'),
+                        controller: comment,
+                        focusNode: focus,
+                        maxLength: 500,
+                        minLines: 1,
+                        maxLines: 3,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => send(),
+                        onChanged: (_) => setState(() {}),
+                        decoration: const InputDecoration(
+                          hintText: '说点什么吧…',
+                          counterText: '',
+                          isDense: true,
+                          prefixIcon: Icon(CupertinoIcons.pencil, size: 17),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 11,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      if (comment.text.trim().isNotEmpty)
-                        TextButton(
-                          onPressed: sending ? null : send,
-                          child: Text(sending ? '发送中' : '发送'),
-                        )
-                      else ...[
-                        _action(
-                          s.liked.contains(n.id)
-                              ? CupertinoIcons.heart_fill
-                              : CupertinoIcons.heart,
-                          countLabel(
-                            n.likes + (s.liked.contains(n.id) ? 1 : 0),
-                          ),
-                          () => s.toggleLike(n),
-                          s.liked.contains(n.id),
-                          '点赞',
-                        ),
-                        _action(
-                          s.saved.contains(n.id)
-                              ? CupertinoIcons.star_fill
-                              : CupertinoIcons.star,
-                          countLabel(
-                            n.saves + (s.saved.contains(n.id) ? 1 : 0),
-                          ),
-                          () => s.toggleSave(n),
-                          s.saved.contains(n.id),
-                          '收藏',
-                        ),
-                        _action(
-                          CupertinoIcons.chat_bubble,
-                          '${s.commentsFor(n).length}',
-                          () => focus.requestFocus(),
-                          false,
-                          '评论',
-                        ),
-                      ],
+                    ),
+                    const SizedBox(width: 10),
+                    if (comment.text.trim().isNotEmpty)
+                      TextButton(
+                        onPressed: sending ? null : send,
+                        child: Text(sending ? '发送中' : '发送'),
+                      )
+                    else ...[
+                      _action(
+                        s.liked.contains(n.id)
+                            ? CupertinoIcons.heart_fill
+                            : CupertinoIcons.heart,
+                        countLabel(n.likes + (s.liked.contains(n.id) ? 1 : 0)),
+                        () => s.toggleLike(n),
+                        s.liked.contains(n.id),
+                        '点赞',
+                      ),
+                      _action(
+                        s.saved.contains(n.id)
+                            ? CupertinoIcons.star_fill
+                            : CupertinoIcons.star,
+                        countLabel(n.saves + (s.saved.contains(n.id) ? 1 : 0)),
+                        () => s.toggleSave(n),
+                        s.saved.contains(n.id),
+                        '收藏',
+                      ),
+                      _action(
+                        CupertinoIcons.chat_bubble,
+                        '${s.commentsFor(n).length}',
+                        () => focus.requestFocus(),
+                        false,
+                        '评论',
+                      ),
                     ],
-                  ),
+                  ],
                 ),
               ),
             ),

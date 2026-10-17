@@ -15,15 +15,16 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final controller = TextEditingController();
-  String query = '';
-  bool searched = false;
+  String? query;
   @override
   void initState() {
     super.initState();
-    query = widget.initialQuery.trim();
-    controller.text = query;
-    searched = query.isNotEmpty;
-    if (searched) widget.store.addSearch(query);
+    final initial = widget.initialQuery.trim();
+    controller.text = initial;
+    if (initial.isNotEmpty) {
+      query = initial;
+      widget.store.addSearch(initial);
+    }
   }
 
   @override
@@ -33,17 +34,14 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void submit(String q) {
-    if (q.trim().isEmpty) return;
-    widget.store.addSearch(q);
     q = q.trim();
+    if (q.isEmpty) return;
+    widget.store.addSearch(q);
     controller.value = TextEditingValue(
       text: q,
       selection: TextSelection.collapsed(offset: q.length),
     );
-    setState(() {
-      query = q;
-      searched = true;
-    });
+    setState(() => query = q);
     FocusScope.of(context).unfocus();
   }
 
@@ -66,7 +64,7 @@ class _SearchPageState extends State<SearchPage> {
               tooltip: '清空',
               onPressed: () {
                 controller.clear();
-                setState(() => searched = false);
+                setState(() => query = null);
               },
               icon: const Icon(
                 CupertinoIcons.xmark_circle_fill,
@@ -88,15 +86,16 @@ class _SearchPageState extends State<SearchPage> {
     body: AnimatedBuilder(
       animation: widget.store,
       builder: (context, _) {
-        if (searched) {
-          final result = widget.store.filter(query: query);
+        final currentQuery = query;
+        if (currentQuery != null) {
+          final result = widget.store.filter(query: currentQuery);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 14, 24, 4),
                 child: Text(
-                  '“$query”的搜索结果 · ${result.length} 篇',
+                  '“$currentQuery”的搜索结果 · ${result.length} 篇',
                   style: const TextStyle(color: muted, fontSize: 13),
                 ),
               ),
