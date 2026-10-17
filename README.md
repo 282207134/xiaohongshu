@@ -31,7 +31,7 @@ iOS 工程需要在 macOS 上使用 Xcode 构建、配置签名并验证相册�
 
 ```powershell
 flutter analyze
-flutter test
+flutter test --concurrency=1
 flutter build web --no-wasm-dry-run --output=build/web
 ```
 
@@ -85,3 +85,5 @@ docs/参考资料与后续开发.md   资料映射、边界与后续接入顺序
 SharedPreferences 用来演示小规模本地保存。相册单图限制为 1.5 MB，最多 9 张；多篇大图笔记可能达到浏览器存储配额，界面会提示保存失败。正式版本应把图片移至文件系统或对象存储，记录移至数据库，不能依赖此演示存储方案承载大量内容。清除应用数据或浏览器站点数据会移除本地记录。
 
 详细的参考范围、服务端接入和上线准备见 [参考资料与后续开发](docs/参考资料与后续开发.md)。
+
+本轮输入框修复、11 项测试及 Android 完整流程验证见 [功能回归与输入修复](docs/功能回归与输入修复.md)。Windows 测试引擎并发运行出现过意外退出，建议使用上述串行测试命令。
