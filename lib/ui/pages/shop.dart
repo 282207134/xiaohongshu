@@ -137,7 +137,10 @@ class _ShopPageState extends State<ShopPage> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: TextField(
+            key: const ValueKey('shop-search'),
             controller: search,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => FocusScope.of(context).unfocus(),
             onChanged: (v) => setState(() => query = v.trim()),
             decoration: InputDecoration(
               hintText: '寻找让生活更好的小物',

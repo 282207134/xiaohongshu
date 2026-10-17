@@ -6,8 +6,9 @@ import '../theme.dart';
 import '../widgets/note_grid.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, required this.store});
+  const SearchPage({super.key, required this.store, this.initialQuery = ''});
   final AppStore store;
+  final String initialQuery;
   @override
   State<SearchPage> createState() => _SearchPageState();
 }
@@ -17,6 +18,15 @@ class _SearchPageState extends State<SearchPage> {
   String query = '';
   bool searched = false;
   @override
+  void initState() {
+    super.initState();
+    query = widget.initialQuery.trim();
+    controller.text = query;
+    searched = query.isNotEmpty;
+    if (searched) widget.store.addSearch(query);
+  }
+
+  @override
   void dispose() {
     controller.dispose();
     super.dispose();
@@ -25,7 +35,11 @@ class _SearchPageState extends State<SearchPage> {
   void submit(String q) {
     if (q.trim().isEmpty) return;
     widget.store.addSearch(q);
-    controller.text = q;
+    q = q.trim();
+    controller.value = TextEditingValue(
+      text: q,
+      selection: TextSelection.collapsed(offset: q.length),
+    );
     setState(() {
       query = q;
       searched = true;
@@ -39,8 +53,9 @@ class _SearchPageState extends State<SearchPage> {
       title: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600),
         child: TextField(
+          key: const ValueKey('note-search'),
           controller: controller,
-          autofocus: true,
+          autofocus: widget.initialQuery.trim().isEmpty,
           onSubmitted: submit,
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(

@@ -20,10 +20,14 @@ class _PublishPageState extends State<PublishPage> {
       body = TextEditingController(),
       tags = TextEditingController();
   final form = GlobalKey<FormState>();
+  final titleFocus = FocusNode(),
+      bodyFocus = FocusNode(),
+      tagsFocus = FocusNode();
   List<String> images = [];
   String category = '生活';
   bool busy = false;
   bool canPop = false;
+  bool leaving = false;
   void finish([bool? result]) {
     setState(() => canPop = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -49,6 +53,9 @@ class _PublishPageState extends State<PublishPage> {
     title.dispose();
     body.dispose();
     tags.dispose();
+    titleFocus.dispose();
+    bodyFocus.dispose();
+    tagsFocus.dispose();
     super.dispose();
   }
 
@@ -80,6 +87,7 @@ class _PublishPageState extends State<PublishPage> {
   }
 
   Future<void> saveDraft() async {
+    if (busy) return;
     setState(() => busy = true);
     await widget.store.saveDraft({
       'title': title.text,
@@ -95,7 +103,12 @@ class _PublishPageState extends State<PublishPage> {
   }
 
   Future<void> publish() async {
-    if (!form.currentState!.validate()) return;
+    if (busy) return;
+    if (!form.currentState!.validate()) {
+      titleFocus.requestFocus();
+      return;
+    }
+    FocusScope.of(context).unfocus();
     if (images.isEmpty) {
       toast(context, '先为这篇笔记添加一张图片吧');
       return;
@@ -130,10 +143,16 @@ class _PublishPageState extends State<PublishPage> {
   }
 
   Future<void> leave() async {
-    if (title.text.isEmpty && body.text.isEmpty && images.isEmpty) {
+    if (busy || leaving || canPop) return;
+    if (title.text.isEmpty &&
+        body.text.isEmpty &&
+        tags.text.isEmpty &&
+        images.isEmpty) {
       finish();
       return;
     }
+    leaving = true;
+    FocusScope.of(context).unfocus();
     final choice = await showDialog<String>(
       context: context,
       builder: (c) => AlertDialog(
@@ -155,6 +174,8 @@ class _PublishPageState extends State<PublishPage> {
         ],
       ),
     );
+    leaving = false;
+    if (!mounted) return;
     if (choice == 'save') {
       await saveDraft();
       if (mounted && widget.store.storageError == null) finish();
@@ -191,6 +212,8 @@ class _PublishPageState extends State<PublishPage> {
           child: Form(
             key: form,
             child: ListView(
+              key: const ValueKey('publish-form-scroll'),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(24),
               children: [
                 const Text(
@@ -236,8 +259,11 @@ class _PublishPageState extends State<PublishPage> {
                               right: 2,
                               child: IconButton(
                                 tooltip: '删除图片',
-                                onPressed: () =>
-                                    setState(() => images.removeAt(e.key)),
+                                onPressed: busy
+                                    ? null
+                                    : () => setState(
+                                        () => images.removeAt(e.key),
+                                      ),
                                 icon: const Icon(
                                   CupertinoIcons.xmark_circle_fill,
                                   color: Colors.white,
@@ -312,7 +338,9 @@ class _PublishPageState extends State<PublishPage> {
                             .images
                             .first;
                         return InkWell(
-                          onTap: () => setState(() => images.add(source)),
+                          onTap: busy
+                              ? null
+                              : () => setState(() => images.add(source)),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: AppImage(source, width: 70, height: 70),
@@ -324,7 +352,12 @@ class _PublishPageState extends State<PublishPage> {
                   const SizedBox(height: 24),
                 ],
                 TextFormField(
+                  key: const ValueKey('publish-title'),
                   controller: title,
+                  focusNode: titleFocus,
+                  readOnly: busy,
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) => bodyFocus.requestFocus(),
                   maxLength: 30,
                   style: const TextStyle(
                     fontSize: 20,
@@ -338,7 +371,12 @@ class _PublishPageState extends State<PublishPage> {
                   validator: (v) => (v ?? '').trim().isEmpty ? '请输入笔记标题' : null,
                 ),
                 TextFormField(
+                  key: const ValueKey('publish-body'),
                   controller: body,
+                  focusNode: bodyFocus,
+                  readOnly: busy,
+                  textInputAction: TextInputAction.newline,
+                  minLines: 4,
                   maxLines: 7,
                   maxLength: 2000,
                   decoration: const InputDecoration(
@@ -350,7 +388,11 @@ class _PublishPageState extends State<PublishPage> {
                 const Divider(),
                 const SizedBox(height: 16),
                 TextField(
+                  key: const ValueKey('publish-tags'),
                   controller: tags,
+                  focusNode: tagsFocus,
+                  readOnly: busy,
+                  textInputAction: TextInputAction.done,
                   maxLength: 100,
                   decoration: const InputDecoration(
                     hintText: '添加话题，用空格分隔',
@@ -377,19 +419,39 @@ class _PublishPageState extends State<PublishPage> {
                             (c) => DropdownMenuItem(value: c, child: Text(c)),
                           )
                           .toList(),
-                      onChanged: (c) => setState(() => category = c!),
+                      onChanged: busy
+                          ? null
+                          : (c) => setState(() => category = c!),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: busy ? null : publish,
-                  child: Text(busy ? '正在保存…' : '发布笔记'),
+              ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 10, 24, 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 712,
+                  child: FilledButton(
+                    key: const ValueKey('publish-submit'),
+                    onPressed: busy ? null : publish,
+                    child: Text(busy ? '正在保存…' : '发布笔记'),
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 const Text(
                   '本地体验：笔记将保存在当前设备中',
-                  textAlign: TextAlign.center,
                   style: TextStyle(color: muted, fontSize: 11),
                 ),
               ],

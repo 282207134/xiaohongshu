@@ -201,11 +201,14 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> send() async {
-    if (input.text.trim().isEmpty || sending) return;
+    final text = input.text;
+    if (text.trim().isEmpty || sending) return;
     setState(() => sending = true);
-    await widget.store.send('${widget.index}', input.text);
+    await widget.store.send('${widget.index}', text);
     if (mounted) {
-      input.clear();
+      if (widget.store.storageError == null && input.text == text) {
+        input.clear();
+      }
       setState(() => sending = false);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && scroll.hasClients) {
@@ -263,8 +266,11 @@ class _ChatPageState extends State<ChatPage> {
                       children: [
                         Expanded(
                           child: TextField(
+                            key: const ValueKey('chat-message'),
                             controller: input,
                             maxLength: 500,
+                            minLines: 1,
+                            maxLines: 3,
                             textInputAction: TextInputAction.send,
                             onSubmitted: (_) => send(),
                             decoration: const InputDecoration(

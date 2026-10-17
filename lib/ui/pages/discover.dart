@@ -16,9 +16,22 @@ class DiscoverPage extends StatefulWidget {
 class _DiscoverPageState extends State<DiscoverPage> {
   String category = '推荐', location = '广东';
   int channel = 1;
-  void search() => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => SearchPage(store: widget.store)),
-  );
+  final searchController = TextEditingController();
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  void search([String query = '']) {
+    FocusScope.of(context).unfocus();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SearchPage(store: widget.store, initialQuery: query),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width > 900;
@@ -116,23 +129,25 @@ class _DiscoverPageState extends State<DiscoverPage> {
               if (wide)
                 SizedBox(
                   width: 260,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(24),
-                    onTap: search,
-                    child: const IgnorePointer(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: '搜索你感兴趣的生活',
-                          suffixIcon: Icon(CupertinoIcons.search, size: 19),
-                          isDense: true,
-                        ),
+                  child: TextField(
+                    key: const ValueKey('discover-search'),
+                    controller: searchController,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: search,
+                    decoration: InputDecoration(
+                      hintText: '搜索你感兴趣的生活',
+                      suffixIcon: IconButton(
+                        tooltip: '搜索笔记',
+                        onPressed: () => search(searchController.text),
+                        icon: const Icon(CupertinoIcons.search, size: 19),
                       ),
+                      isDense: true,
                     ),
                   ),
                 )
               else
                 IconButton(
-                  onPressed: search,
+                  onPressed: () => search(),
                   tooltip: '搜索笔记',
                   icon: const Icon(CupertinoIcons.search, size: 24),
                 ),

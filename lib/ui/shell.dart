@@ -18,6 +18,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int index = 0;
+  int discoverRevision = 0;
   String? shownError;
   static const labels = ['发现', '购物', '消息', '我'];
   static const icons = [
@@ -32,12 +33,21 @@ class _AppShellState extends State<AppShell> {
     CupertinoIcons.chat_bubble_2_fill,
     CupertinoIcons.person_crop_circle_fill,
   ];
+  void select(int value) {
+    FocusScope.of(context).unfocus();
+    setState(() => index = value);
+  }
+
   Future<void> publish() async {
+    FocusScope.of(context).unfocus();
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => PublishPage(store: widget.store)),
     );
     if (result == true && mounted) {
-      setState(() => index = 0);
+      setState(() {
+        index = 0;
+        discoverRevision++;
+      });
       toast(context, '笔记发布成功，已加入首页与个人主页');
     }
   }
@@ -57,7 +67,7 @@ class _AppShellState extends State<AppShell> {
       final content = IndexedStack(
         index: index,
         children: [
-          DiscoverPage(store: s),
+          DiscoverPage(key: ValueKey(discoverRevision), store: s),
           ShopPage(store: s),
           MessagesPage(store: s),
           ProfilePage(store: s),
@@ -108,7 +118,7 @@ class _AppShellState extends State<AppShell> {
                           padding: const EdgeInsets.only(bottom: 10),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(14),
-                            onTap: () => setState(() => index = i),
+                            onTap: () => select(i),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 18,
@@ -178,7 +188,7 @@ class _AppShellState extends State<AppShell> {
                       const Divider(),
                       const SizedBox(height: 12),
                       InkWell(
-                        onTap: () => setState(() => index = 3),
+                        onTap: () => select(3),
                         child: Row(
                           children: [
                             Avatar(s.avatar, size: 34),
@@ -259,7 +269,7 @@ class _AppShellState extends State<AppShell> {
       button: true,
       label: labels[i],
       child: InkWell(
-        onTap: () => setState(() => index = i),
+        onTap: () => select(i),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

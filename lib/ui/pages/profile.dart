@@ -6,6 +6,79 @@ import '../theme.dart';
 import '../widgets/note_grid.dart';
 import 'publish.dart';
 
+class _ProfileEditor extends StatefulWidget {
+  const _ProfileEditor({required this.nickname, required this.description});
+  final String nickname, description;
+
+  @override
+  State<_ProfileEditor> createState() => _ProfileEditorState();
+}
+
+class _ProfileEditorState extends State<_ProfileEditor> {
+  late final name = TextEditingController(text: widget.nickname);
+  late final bio = TextEditingController(text: widget.description);
+  final bioFocus = FocusNode();
+  final form = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    name.dispose();
+    bio.dispose();
+    bioFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    scrollable: true,
+    insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+    title: const Text('编辑资料'),
+    content: SizedBox(
+      width: 360,
+      child: Form(
+        key: form,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              key: const ValueKey('profile-name'),
+              controller: name,
+              maxLength: 20,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) => bioFocus.requestFocus(),
+              decoration: const InputDecoration(labelText: '昵称'),
+              validator: (v) => (v ?? '').trim().isEmpty ? '昵称不能为空' : null,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              key: const ValueKey('profile-bio'),
+              controller: bio,
+              focusNode: bioFocus,
+              maxLength: 100,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: '简介'),
+            ),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('取消'),
+      ),
+      FilledButton(
+        onPressed: () {
+          if (form.currentState!.validate()) {
+            Navigator.pop(context, (name: name.text, bio: bio.text));
+          }
+        },
+        child: const Text('保存'),
+      ),
+    ],
+  );
+}
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, required this.store});
   final AppStore store;
@@ -16,59 +89,17 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   int tab = 0;
   Future<void> edit() async {
-    final name = TextEditingController(text: widget.store.nickname),
-        bio = TextEditingController(text: widget.store.bio);
-    final key = GlobalKey<FormState>();
-    final result = await showDialog<bool>(
+    final result = await showDialog<({String name, String bio})>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('编辑资料'),
-        content: SizedBox(
-          width: 360,
-          child: Form(
-            key: key,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: name,
-                  maxLength: 20,
-                  decoration: const InputDecoration(labelText: '昵称'),
-                  validator: (v) => (v ?? '').trim().isEmpty ? '昵称不能为空' : null,
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: bio,
-                  maxLength: 100,
-                  maxLines: 3,
-                  decoration: const InputDecoration(labelText: '简介'),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (key.currentState!.validate()) Navigator.pop(c, true);
-            },
-            child: const Text('保存'),
-          ),
-        ],
+      builder: (_) => _ProfileEditor(
+        nickname: widget.store.nickname,
+        description: widget.store.bio,
       ),
     );
-    if (result == true) {
-      await widget.store.updateProfile(name.text, bio.text);
+    if (result != null) {
+      await widget.store.updateProfile(result.name, result.bio);
       if (mounted) toast(context, widget.store.storageError ?? '资料已更新');
     }
-    // Controllers remain valid until the dialog's closing animation completes.
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    name.dispose();
-    bio.dispose();
   }
 
   void settings() => showModalBottomSheet<void>(
