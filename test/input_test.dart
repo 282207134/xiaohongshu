@@ -5,11 +5,41 @@ import 'package:life_notes/ui/pages/messages.dart';
 import 'package:life_notes/ui/pages/note_detail.dart';
 import 'package:life_notes/ui/pages/profile.dart';
 import 'package:life_notes/ui/shell.dart';
+import 'package:life_notes/ui/theme.dart';
 
 import 'support/app.dart';
 import 'support/input.dart';
 
 void main() {
+  testWidgets('Empty state scrolls when vertical space is limited', (
+    tester,
+  ) async {
+    var tapped = false;
+    await pumpTestApp(
+      tester,
+      Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 320,
+            height: 180,
+            child: EmptyState(
+              title: '还没有找到这件好物',
+              subtitle: '换一个关键词，再找找喜欢的生活好物。',
+              action: TextButton(
+                onPressed: () => tapped = true,
+                child: const Text('返回浏览'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.text('返回浏览'));
+    await tester.tap(find.text('返回浏览'));
+    expect(tapped, isTrue);
+  });
+
   testWidgets(
     'Desktop discovery search accepts text and opens matching results',
     (tester) async {

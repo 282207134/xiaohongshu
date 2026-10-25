@@ -6,11 +6,15 @@ Future<void> main() async {
   await integrationDriver(
     onScreenshot:
         (String name, List<int> bytes, [Map<String, Object?>? args]) async {
-          final file = File('docs/screenshots/android/$name.png');
+          final directory =
+              Platform.environment['SCREENSHOT_DIR'] ??
+              'docs/screenshots/android';
+          final file = File('$directory/$name.png');
           await file.parent.create(recursive: true);
           await file.writeAsBytes(bytes);
           return true;
         },
-    writeResponseOnFailure: true,
+    // Screenshots are already saved; avoid duplicating their bytes in JSON.
+    responseDataCallback: (_) async {},
   );
 }

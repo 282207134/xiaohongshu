@@ -209,11 +209,7 @@ class AppStore extends ChangeNotifier {
     persist();
   }
 
-  void addToCart(Product p) {
-    cart[p.id] = (cart[p.id] ?? 0) + 1;
-    notifyListeners();
-    persist();
-  }
+  void addToCart(Product p) => changeQuantity(p, 1);
 
   void changeQuantity(Product p, int delta) {
     final n = (cart[p.id] ?? 0) + delta;

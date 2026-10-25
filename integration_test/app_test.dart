@@ -15,12 +15,19 @@ late IntegrationTestWidgetsFlutterBinding binding;
 final testTitle = '模拟器笔记-${DateTime.now().millisecondsSinceEpoch}';
 
 Future<void> capture(WidgetTester tester, String name) async {
+  if (!name.contains('keyboard')) await dismissKeyboard(tester);
+  await clearToasts(tester);
+  expect(tester.takeException(), isNull, reason: 'Layout before $name');
   await tester.pump();
   await binding.takeScreenshot(name);
 }
 
 Future<void> dismissKeyboard(WidgetTester tester) async {
   FocusManager.instance.primaryFocus?.unfocus();
+  await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+  await tester.runAsync(
+    () => Future<void>.delayed(const Duration(milliseconds: 400)),
+  );
   await settle(tester);
 }
 
@@ -64,6 +71,12 @@ Future<void> browseAndSave(WidgetTester tester) async {
   }
   await settle(tester);
   await capture(tester, '02-note-detail');
+  await tester.drag(
+    find.byType(SingleChildScrollView).first,
+    const Offset(0, -300),
+  );
+  await settle(tester);
+  await capture(tester, '20-note-content');
   expect((await AppStore.load()).saved.contains('9'), true);
   expect((await AppStore.load()).liked.contains('9'), true);
   await tester.tap(find.byTooltip('复制笔记内容'));
@@ -80,8 +93,23 @@ Future<void> browseAndSave(WidgetTester tester) async {
   await settle(tester);
   expect(find.text('英国萨福克郡童话般的春日'), findsOneWidget);
   await capture(tester, '03-profile-saved');
+  await tester.tap(find.text('赞过'));
+  await settle(tester);
+  await capture(tester, '21-profile-liked');
+  await tester.tap(find.text('关注').last);
+  await settle(tester);
+  expect(find.text('我的关注'), findsOneWidget);
+  await capture(tester, '22-follow-list');
+  await tester.binding.handlePopRoute();
+  await settle(tester);
+  await tester.tap(find.byTooltip('设置与帮助'));
+  await settle(tester);
+  await capture(tester, '23-settings');
+  await tester.binding.handlePopRoute();
+  await settle(tester);
   await tester.tap(find.text('编辑资料'));
   await settle(tester);
+  await capture(tester, '24-profile-editor');
   await touchType(tester, 'profile-name', '');
   await tester.tap(find.widgetWithText(FilledButton, '保存'));
   await settle(tester);
@@ -102,10 +130,13 @@ Future<void> searchNotes(WidgetTester tester) async {
   await settle(tester);
   await tester.tap(find.byTooltip('搜索笔记'));
   await settle(tester);
+  await dismissKeyboard(tester);
+  await capture(tester, '25-search-start');
   await touchType(tester, 'note-search', '不存在的笔记xyz');
   await tester.testTextInput.receiveAction(TextInputAction.search);
   await settle(tester);
   expect(find.text('还没找到相关笔记'), findsOneWidget);
+  await capture(tester, '26-search-empty');
   await tester.tap(find.byTooltip('清空'));
   await settle(tester);
   await tester.tap(find.byTooltip('删除搜索历史'));
@@ -117,6 +148,15 @@ Future<void> searchNotes(WidgetTester tester) async {
   expect(find.text('让我抱抱，一起温暖，真的好治愈'), findsOneWidget);
   await capture(tester, '04-search');
   await tester.binding.handlePopRoute();
+  await settle(tester);
+  await tester.tap(find.text('关注').first);
+  await settle(tester);
+  expect(find.text('英国萨福克郡童话般的春日'), findsOneWidget);
+  await capture(tester, '27-follow-feed');
+  await tester.tap(find.text('同城'));
+  await settle(tester);
+  await capture(tester, '28-local-feed');
+  await tester.tap(find.text('发现').first);
   await settle(tester);
 }
 
@@ -176,6 +216,7 @@ Future<void> publishNote(WidgetTester tester) async {
   await capture(tester, '05-publish-draft');
   await tester.tap(find.byTooltip('关闭编辑'));
   await settle(tester);
+  await capture(tester, '29-leave-draft');
   await tester.tap(find.text('保存草稿'));
   await settle(tester);
   expect(find.text('记录这一刻'), findsNothing);
@@ -208,6 +249,8 @@ Future<void> shopAndMessages(WidgetTester tester) async {
   await capture(tester, '07-shop');
   await tester.tap(find.byType(AppImage).at(3));
   await settle(tester);
+  expect(find.text('加入购物袋'), findsOneWidget);
+  await capture(tester, '30-product-detail');
   await tester.tap(find.text('加入购物袋'));
   await settle(tester);
   await tester.tap(find.byTooltip('购物袋'));
@@ -226,6 +269,15 @@ Future<void> shopAndMessages(WidgetTester tester) async {
   await settle(tester);
   await tester.tap(find.text('消息').last);
   await settle(tester);
+  await capture(tester, '31-messages');
+  for (final (index, label) in ['赞和收藏', '新增关注', '评论和@'].indexed) {
+    await tester.tap(find.text(label));
+    await settle(tester);
+    expect(find.text('暂时没有新的互动'), findsOneWidget);
+    await capture(tester, '${32 + index}-notification-$index');
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+  }
   await tester.tap(find.text('拾光小助手'));
   await settle(tester);
   await touchType(tester, 'chat-message', '模拟器消息测试');
@@ -236,6 +288,14 @@ Future<void> shopAndMessages(WidgetTester tester) async {
   expect(find.text('模拟器消息测试'), findsOneWidget);
   expect((await AppStore.load()).sentMessages['0'], contains('模拟器消息测试'));
   await capture(tester, '09-chat');
+  await tester.binding.handlePopRoute();
+  await settle(tester);
+  await tester.tap(find.text('我').last);
+  await settle(tester);
+  await tester.tap(find.text('笔记').last);
+  await settle(tester);
+  expect(find.text(testTitle), findsOneWidget);
+  await capture(tester, '35-profile-notes');
 }
 
 void main() {

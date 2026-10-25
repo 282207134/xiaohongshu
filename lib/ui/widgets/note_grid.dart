@@ -60,6 +60,13 @@ class _NoteCard extends StatefulWidget {
 
 class _NoteCardState extends State<_NoteCard> {
   bool hovered = false;
+
+  void openDetail() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => NoteDetail(note: widget.note, store: widget.store),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final n = widget.note;
@@ -75,11 +82,7 @@ class _NoteCardState extends State<_NoteCard> {
             button: true,
             label: '查看笔记：${n.title}',
             child: GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => NoteDetail(note: n, store: store),
-                ),
-              ),
+              onTap: openDetail,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: Stack(
@@ -117,11 +120,7 @@ class _NoteCardState extends State<_NoteCard> {
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 10, 4, 2),
             child: InkWell(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => NoteDetail(note: n, store: store),
-                ),
-              ),
+              onTap: openDetail,
               child: Text(
                 n.title,
                 maxLines: 2,
